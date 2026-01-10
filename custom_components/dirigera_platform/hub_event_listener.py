@@ -34,6 +34,7 @@ process_events_from = {
     "environmentSensor":    [   "currentTemperature",
                                 "currentRH",
                                 "currentPM25",
+                                "currentCO2",
                                 "vocIndex",
                                 "batteryPercentage"]
 }

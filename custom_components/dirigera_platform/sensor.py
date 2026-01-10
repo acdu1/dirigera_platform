@@ -4,6 +4,7 @@ from .dirigera_lib_patch import HubX
 
 from .base_classes import (
     battery_percentage_sensor,
+    ikea_alpstuga_co2,
     ikea_vindstyrka_temperature,
     ikea_vindstyrka_humidity,
     ikea_vindstyrka_pm25,
@@ -85,6 +86,8 @@ async def add_environment_sensors(async_add_entities, env_devices):
             env_sensors.append(ikea_vindstyrka_pm25(env_device, WhichPM25.MIN))
         if getattr(env_device,"voc_index") is not None:
             env_sensors.append(ikea_vindstyrka_voc_index(env_device))
+        if getattr(env_device,"current_c_o2") is not None:
+            env_sensors.append(ikea_alpstuga_co2(env_device))
 
     logger.debug("Found {} env entities to setup...".format(len(env_sensors)))
 
