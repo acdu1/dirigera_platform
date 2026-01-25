@@ -220,15 +220,27 @@ class ikea_bulb(LightEntity):
 
     @property
     def max_color_temp_kelvin(self):
-        return self._json_data.attributes.color_temperature_min
+        # Dirigera stores color temperature in mired (micro reciprocal degrees)
+        # Home Assistant expects Kelvin. Lower mired = higher Kelvin (cooler/bluer)
+        mired = self._json_data.attributes.color_temperature_min
+        if mired is None or mired == 0:
+            return None
+        return int(1000000 / mired)
 
     @property
     def min_color_temp_kelvin(self):
-        return self._json_data.attributes.color_temperature_max
+        # Higher mired = lower Kelvin (warmer/redder)
+        mired = self._json_data.attributes.color_temperature_max
+        if mired is None or mired == 0:
+            return None
+        return int(1000000 / mired)
 
     @property
     def color_temp_kelvin(self):
-        return self._json_data.attributes.color_temperature
+        mired = self._json_data.attributes.color_temperature
+        if mired is None or mired == 0:
+            return None
+        return int(1000000 / mired)
 
     @property
     def color_temperature(self):
@@ -304,12 +316,17 @@ class ikea_bulb(LightEntity):
 
             if ATTR_COLOR_TEMP_KELVIN in kwargs:
                 # color temp requested
-                # If request is white then brightness is passed
                 logger.debug("Request to set color temp...")
                 ct = kwargs[ATTR_COLOR_TEMP_KELVIN]
-                logger.debug("Set CT : {}".format(ct))
-                await self.hass.async_add_executor_job(self._json_data.set_color_temperature,ct)
-                self._ignore_update = True 
+                logger.debug("Set CT (Kelvin): {}".format(ct))
+                # Use direct API patch to bypass library validation issues
+                # The hub expects Kelvin values directly
+                await self.hass.async_add_executor_job(
+                    self._hub.patch,
+                    f"/devices/{self._json_data.id}",
+                    [{"attributes": {"colorTemperature": ct}}]
+                )
+                self._ignore_update = True
 
             if ATTR_HS_COLOR in kwargs:
                 logger.debug("Request to set color HS")
