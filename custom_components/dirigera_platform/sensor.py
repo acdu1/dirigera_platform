@@ -74,19 +74,19 @@ async def add_environment_sensors(async_add_entities, env_devices):
         # For each device setup up multiple entities
         # Some non IKEA environment sensors only have some of the attributes
         # hence check if it exists and then add
-        if getattr(env_device,"current_temperature") is not None:
+        if getattr(env_device,"current_temperature", None) is not None:
             env_sensors.append(ikea_vindstyrka_temperature(env_device))
-        if getattr(env_device,"current_r_h") is not None:
+        if getattr(env_device,"current_r_h", None) is not None:
             env_sensors.append(ikea_vindstyrka_humidity(env_device))
-        if getattr(env_device,"current_p_m25") is not None:
+        if getattr(env_device,"current_p_m25", None) is not None:
             env_sensors.append(ikea_vindstyrka_pm25(env_device, WhichPM25.CURRENT))
-        if getattr(env_device,"max_measured_p_m25") is not None:
+        if getattr(env_device,"max_measured_p_m25", None) is not None:
             env_sensors.append(ikea_vindstyrka_pm25(env_device, WhichPM25.MAX))
-        if getattr(env_device,"min_measured_p_m25") is not None:
+        if getattr(env_device,"min_measured_p_m25", None) is not None:
             env_sensors.append(ikea_vindstyrka_pm25(env_device, WhichPM25.MIN))
-        if getattr(env_device,"voc_index") is not None:
+        if getattr(env_device,"voc_index", None) is not None:
             env_sensors.append(ikea_vindstyrka_voc_index(env_device))
-        if getattr(env_device,"current_c_o2") is not None:
+        if getattr(env_device,"current_c_o2", None) is not None:
             env_sensors.append(ikea_alpstuga_co2(env_device))
 
     logger.debug("Found {} env entities to setup...".format(len(env_sensors)))

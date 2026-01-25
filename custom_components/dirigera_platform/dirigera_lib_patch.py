@@ -11,6 +11,42 @@ import logging
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
+
+# Environment sensor patch for ALPSTUGA (adds current_c_o2 support)
+# The dirigera library doesn't have current_c_o2 field yet
+class EnvironmentSensorAttributesX(Attributes):
+    current_temperature: Optional[float] = None
+    current_r_h: Optional[int] = None
+    current_p_m25: Optional[int] = None
+    max_measured_p_m25: Optional[int] = None
+    min_measured_p_m25: Optional[int] = None
+    voc_index: Optional[int] = None
+    battery_percentage: Optional[int] = None
+    current_c_o2: Optional[int] = None  # Added for ALPSTUGA CO2 sensor
+
+
+class EnvironmentSensorX(Device):
+    dirigera_client: AbstractSmartHomeHub
+    attributes: EnvironmentSensorAttributesX
+
+    def reload(self) -> "EnvironmentSensorX":
+        data = self.dirigera_client.get(route=f"/devices/{self.id}")
+        return EnvironmentSensorX(dirigeraClient=self.dirigera_client, **data)
+
+    def set_name(self, name: str) -> None:
+        if "customName" not in self.capabilities.can_receive:
+            raise AssertionError("This sensor does not support the set_name function")
+        data = [{"attributes": {"customName": name}}]
+        self.dirigera_client.patch(route=f"/devices/{self.id}", data=data)
+        self.attributes.custom_name = name
+
+
+def dict_to_environment_sensor_x(
+    data: Dict[str, Any], dirigera_client: AbstractSmartHomeHub
+) -> EnvironmentSensorX:
+    return EnvironmentSensorX(dirigeraClient=dirigera_client, **data)
+
+
 # Patch to fix issues with motion sensor
 class HubX(Hub):
     def __init__(
@@ -100,7 +136,26 @@ class HubX(Hub):
         if motion_sensor["deviceType"] not in ("motionSensor", "occupancySensor"):
             raise ValueError("Device is not a MotionSensor or OccupancySensor")
         return dict_to_motion_sensor_x(motion_sensor, self)
-                
+
+    def get_environment_sensors(self) -> List[EnvironmentSensorX]:
+        """
+        Fetches all environment sensors registered in the Hub.
+        Uses patched EnvironmentSensorX with current_c_o2 support for ALPSTUGA.
+        """
+        devices = self.get("/devices")
+        sensors = list(filter(lambda x: x["deviceType"] == "environmentSensor", devices))
+        return [dict_to_environment_sensor_x(sensor, self) for sensor in sensors]
+
+    def get_environment_sensor_by_id(self, id_: str) -> EnvironmentSensorX:
+        """
+        Fetches an environment sensor by ID.
+        Uses patched EnvironmentSensorX with current_c_o2 support for ALPSTUGA.
+        """
+        sensor = self._get_device_data_by_id(id_)
+        if sensor["deviceType"] != "environmentSensor":
+            raise ValueError("Device is not an EnvironmentSensor")
+        return dict_to_environment_sensor_x(sensor, self)
+
 class ControllerAttributesX(Attributes):
     is_on: Optional[bool] = None
     battery_percentage: Optional[int] = None

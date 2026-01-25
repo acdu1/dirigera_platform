@@ -26,7 +26,7 @@ from homeassistant.const import (
 
 from dirigera import Hub
 from dirigera.devices.blinds import Blind
-from dirigera.devices.environment_sensor import EnvironmentSensor
+from .dirigera_lib_patch import EnvironmentSensorX
 from dirigera.devices.controller import Controller
 from dirigera.devices.air_purifier import FanModeEnum
 
@@ -358,7 +358,7 @@ class ikea_blinds_sensor(ikea_base_device_sensor, CoverEntity):
         await self._device.async_set_cover_position(position)
 
 class ikea_vindstyrka_device(ikea_base_device):
-    def __init__(self, hass:core.HomeAssistant, hub:Hub , json_data:EnvironmentSensor) -> None:
+    def __init__(self, hass:core.HomeAssistant, hub:Hub , json_data:EnvironmentSensorX) -> None:
         super().__init__(hass, hub, json_data, hub.get_environment_sensor_by_id)
         self._updated_at = None 
 
