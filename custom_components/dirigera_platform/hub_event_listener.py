@@ -325,18 +325,21 @@ class hub_event_listener(threading.Thread):
             registry_value = hub_event_listener.get_registry_entry(id)
             entity = registry_value.entity 
 
+            reachability_changed = False
             if "isReachable" in info:
                 try:
                     logger.debug(f"Setting {id} reachable as {info['isReachable']}")
                     entity._json_data.is_reachable=info["isReachable"]
+                    reachability_changed = True
                 except Exception as ex:
                     logger.error(f"Failed to setattr is_reachable on device: {id} for msg: {msg}")
                     logger.error(ex)
 
             to_process_attr = process_events_from[device_type]
-            turn_on_off = False 
-            
-            if "attributes" in info and info["attributes"] is not None:
+            turn_on_off = False
+            has_attributes = "attributes" in info and info["attributes"] is not None
+
+            if has_attributes:
                 attributes = info["attributes"]
                
                 for key in attributes:
@@ -373,10 +376,12 @@ class hub_event_listener(threading.Thread):
                 if device_type == "light" and entity.should_ignore_update and not turn_on_off:
                     entity.reset_ignore_update()
                     logger.debug("Ignoring calling update_ha_state as ignore_update is set")
-                    return 
-                
+                    return
+
+            # Update HA state if attributes changed OR if reachability changed
+            if has_attributes or reachability_changed:
                 entity.schedule_update_ha_state(False)
-                
+
                 if registry_value.cascade_entity is not None:
                     # Cascade the update
                     logger.debug(f"Cascading to cascade entity : {registry_value.cascade_entity.unique_id}")
