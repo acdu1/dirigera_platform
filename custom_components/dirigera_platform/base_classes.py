@@ -392,11 +392,12 @@ class ikea_vindstyrka_humidity(ikea_base_device_sensor, SensorEntity):
     def __init__(self, device: ikea_vindstyrka_device) -> None:
         logger.debug("ikea_vindstyrka_humidity ctor...")
         super().__init__(
-                    device, 
-                    id_suffix="HUM", 
+                    device,
+                    id_suffix="HUM",
                     name="Humidity",
                     device_class=SensorDeviceClass.HUMIDITY,
-                    native_unit_of_measurement=PERCENTAGE)
+                    native_unit_of_measurement=PERCENTAGE,
+                    state_class="measurement")
 
     @property
     def native_value(self) -> int:
@@ -425,11 +426,12 @@ class ikea_vindstyrka_pm25(ikea_base_device_sensor, SensorEntity):
             id_suffix = "MINPM25"
             name_suffix = "Min Measured PM2.5"
         
-        super().__init__(device, 
-                         id_suffix=id_suffix, 
+        super().__init__(device,
+                         id_suffix=id_suffix,
                          name=name_suffix,
                          device_class=SensorDeviceClass.PM25,
-                         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER)
+                         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+                         state_class="measurement")
 
     @property
     def native_value(self) -> int:
@@ -446,11 +448,12 @@ class ikea_vindstyrka_voc_index(ikea_base_device_sensor, SensorEntity):
     def __init__(self, device: ikea_vindstyrka_device) -> None:
         logger.debug("ikea_vindstyrka_voc_index ctor...")
         super().__init__(
-            device, 
-            id_suffix="VOC", 
+            device,
+            id_suffix="VOC",
             name="VOC Index",
             device_class=SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS,
-            native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER)
+            native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+            state_class="measurement")
 
     @property
     def native_value(self) -> int:
@@ -460,11 +463,12 @@ class ikea_alpstuga_co2(ikea_base_device_sensor, SensorEntity):
     def __init__(self, device: ikea_vindstyrka_device) -> None:
         logger.debug("ikea_alpstuga_co2 ctor...")
         super().__init__(
-            device, 
-            id_suffix="CO2", 
+            device,
+            id_suffix="CO2",
             name="CO2",
             device_class=SensorDeviceClass.CO2,
-            native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION)
+            native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
+            state_class="measurement")
 
     @property
     def native_value(self) -> int:
