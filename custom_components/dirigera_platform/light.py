@@ -18,8 +18,9 @@ from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
 from homeassistant.core import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN, CONF_HIDE_DEVICE_SET_BULBS, PLATFORM
+from .const import DOMAIN, CONF_HIDE_DEVICE_SET_BULBS, PLATFORM, DISCOVERY_COORDINATOR
 from .hub_event_listener import hub_event_listener, registry_entry
+from .device_discovery import get_discovery_coordinator
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
@@ -75,6 +76,15 @@ async def async_setup_entry(
     async_add_entities([ikea_bulb_device_set(hub, device_sets[key], device_sets[key].get_lights()[0] ) for key in device_sets])
 
     async_add_entities(lights)
+
+    # Register callback and known devices with discovery coordinator
+    discovery = hass.data[DOMAIN].get(DISCOVERY_COORDINATOR)
+    if discovery:
+        discovery.register_platform_callback("light", async_add_entities)
+        for light in all_lights:
+            discovery.register_known_device(light._json_data.id)
+        logger.debug(f"Registered {len(all_lights)} lights with discovery coordinator")
+
     logger.debug("LIGHT Complete async_setup_entry")
 
 class device_set_model:

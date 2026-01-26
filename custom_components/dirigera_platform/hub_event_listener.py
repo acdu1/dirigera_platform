@@ -9,17 +9,19 @@ import re
 from typing import Any 
 import datetime
 from dateutil import parser
-from dirigera import Hub 
+from dirigera import Hub
+from dirigera.devices.device import Room
 
-from homeassistant.const import ATTR_ENTITY_ID 
+from homeassistant.const import ATTR_ENTITY_ID
+from homeassistant.helpers import device_registry as dr, entity_registry as er, area_registry as ar
 
 logger = logging.getLogger("custom_components.dirigera_platform.hub_event_listener")
 
 DATE_TIME_FORMAT:str =  "%Y-%m-%dT%H:%M:%S.%fZ"
 
 process_events_from = {
-    "motionSensor"    :     ["isDetected","isOn","batteryPercentage"],
-    "occupancySensor" :     ["isDetected","isOn","batteryPercentage"],
+    "motionSensor"    :     ["isDetected","isOn","batteryPercentage","customName"],
+    "occupancySensor" :     ["isDetected","isOn","batteryPercentage","customName"],
     "outlet"          :     [   "isOn",
                                 "currentAmps",
                                 "currentActivePower",
@@ -27,17 +29,19 @@ process_events_from = {
                                 "totalEnergyConsumed",
                                 "energyConsumedAtLastReset",
                                 "timeOfLastEnergyReset",
-                                "totalEnergyConsumedLastUpdated"],
-    "light"           :     ["isOn", "lightLevel", "colorTemperature"],
-    "openCloseSensor" :     ["isOpen","batteryPercentage"],
-    "waterSensor"     :     ["waterLeakDetected","batteryPercentage"],
-    "blinds"          :     ["blindsCurrentLevel","batteryPercentage"],
+                                "totalEnergyConsumedLastUpdated",
+                                "customName"],
+    "light"           :     ["isOn", "lightLevel", "colorTemperature", "customName"],
+    "openCloseSensor" :     ["isOpen","batteryPercentage","customName"],
+    "waterSensor"     :     ["waterLeakDetected","batteryPercentage","customName"],
+    "blinds"          :     ["blindsCurrentLevel","batteryPercentage","customName"],
     "environmentSensor":    [   "currentTemperature",
                                 "currentRH",
                                 "currentPM25",
                                 "currentCO2",
                                 "vocIndex",
-                                "batteryPercentage"]
+                                "batteryPercentage",
+                                "customName"]
 }
 
 controller_trigger_last_time_map = {}
@@ -83,11 +87,87 @@ class hub_event_listener(threading.Thread):
             return None 
         return hub_event_listener.device_registry[id]
     
-    def __init__(self, hub : Hub, hass):
+    def __init__(self, hub : Hub, hass, discovery_coordinator=None):
         super().__init__()
         self._hub : Hub = hub
-        self._request_to_stop = False 
-        self._hass = hass 
+        self._request_to_stop = False
+        self._hass = hass
+        self._discovery_coordinator = discovery_coordinator
+
+    async def _update_device_area(self, device_id: str, room_name: str):
+        """Update the device's area in Home Assistant's device registry if needed."""
+        try:
+            device_reg = dr.async_get(self._hass)
+            area_reg = ar.async_get(self._hass)
+
+            # Find the device entry
+            device_entry = device_reg.async_get_device({("dirigera_platform", device_id)})
+            if device_entry is None:
+                logger.debug(f"Device {device_id} not found in HA device registry")
+                return
+
+            if room_name == "":
+                # Remove area assignment if currently set
+                if device_entry.area_id is not None:
+                    logger.info(f"Removing area assignment from device {device_id}")
+                    device_reg.async_update_device(device_entry.id, area_id=None)
+            else:
+                # Find or create the area
+                area_entry = area_reg.async_get_area_by_name(room_name)
+                if area_entry is None:
+                    # Create the area if it doesn't exist
+                    logger.info(f"Creating new area: {room_name}")
+                    area_entry = area_reg.async_create(room_name)
+
+                # Only update if different
+                if device_entry.area_id != area_entry.id:
+                    logger.info(f"Updating device {device_id} area to {room_name}")
+                    device_reg.async_update_device(device_entry.id, area_id=area_entry.id)
+                else:
+                    logger.debug(f"Device {device_id} already in area {room_name}")
+        except Exception as ex:
+            logger.error(f"Failed to update device area for {device_id}: {ex}")
+
+    async def _update_device_name(self, device_id: str, new_name: str):
+        """Update the device's name in Home Assistant's device registry."""
+        try:
+            device_reg = dr.async_get(self._hass)
+
+            # Find the device entry
+            device_entry = device_reg.async_get_device({("dirigera_platform", device_id)})
+            if device_entry is None:
+                logger.debug(f"Device {device_id} not found in HA device registry for name update")
+                return
+
+            # Only update if user hasn't set a custom name
+            if device_entry.name_by_user is not None:
+                logger.debug(f"Device {device_id} has user-set name, skipping automatic name update")
+                return
+
+            # Update the device's name
+            logger.info(f"Updating device {device_id} name to {new_name}")
+            device_reg.async_update_device(device_entry.id, name=new_name)
+        except Exception as ex:
+            logger.error(f"Failed to update device name for {device_id}: {ex}")
+
+    async def sync_all_device_areas(self):
+        """Sync all device areas from Dirigera room info to HA device registry.
+
+        This should be called at startup after all entities are registered,
+        to ensure HA device areas match Dirigera rooms.
+        """
+        logger.info("Starting device area sync from Dirigera rooms")
+        synced_count = 0
+        for device_id, registry_entry in hub_event_listener.device_registry.items():
+            try:
+                entity = registry_entry.entity
+                if hasattr(entity, '_json_data') and entity._json_data.room is not None:
+                    room_name = entity._json_data.room.name
+                    await self._update_device_area(device_id, room_name)
+                    synced_count += 1
+            except Exception as ex:
+                logger.error(f"Failed to sync area for device {device_id}: {ex}")
+        logger.info(f"Device area sync complete, processed {synced_count} devices with rooms")
 
     def on_error(self, ws:Any, ws_msg:str):
         logger.debug(f"on_error hub event listener {ws_msg}")
@@ -292,6 +372,32 @@ class hub_event_listener(threading.Thread):
                 logger.debug(f"Found remotePressEvent message... ")
                 return self.parse_remote_press_event(msg)
 
+            # Handle deviceAdded events - trigger dynamic discovery
+            if msg['type'] == "deviceAdded":
+                if "data" in msg and "id" in msg['data']:
+                    device_id = msg['data']['id']
+                    device_type = msg['data'].get('deviceType', msg['data'].get('type'))
+                    if device_type and self._discovery_coordinator is not None:
+                        logger.info(f"Device added event received: {device_id} (type: {device_type})")
+                        # Schedule discovery on the main event loop
+                        self._hass.loop.call_soon_threadsafe(
+                            lambda did=device_id, dt=device_type: self._hass.async_create_task(
+                                self._discovery_coordinator.discover_device(did, dt)
+                            )
+                        )
+                    else:
+                        logger.debug(f"deviceAdded event without discovery coordinator or type: {msg}")
+                return
+
+            # Log deviceRemoved events for now (entities will become unavailable)
+            if msg['type'] == "deviceRemoved":
+                if "data" in msg and "id" in msg['data']:
+                    device_id = msg['data']['id']
+                    logger.info(f"Device removed event received: {device_id}")
+                    # Note: The entity will remain in HA but become unavailable
+                    # Full removal requires manual deletion in HA UI or a restart
+                return
+
             if msg['type'] != "deviceStateChanged":
                 logger.debug(f"discarding non state message: {msg}")
                 return 
@@ -319,9 +425,19 @@ class hub_event_listener(threading.Thread):
                 return
 
             if id not in hub_event_listener.device_registry:
-                logger.info(f"discarding message as device for id: {id} not found for msg: {msg}")
-                return 
-            
+                # Unknown device - try to discover it
+                if self._discovery_coordinator is not None:
+                    logger.info(f"Unknown device detected: {id} (type: {device_type}), triggering discovery")
+                    # Schedule discovery on the main event loop
+                    self._hass.loop.call_soon_threadsafe(
+                        lambda: self._hass.async_create_task(
+                            self._discovery_coordinator.discover_device(id, device_type)
+                        )
+                    )
+                else:
+                    logger.info(f"discarding message as device for id: {id} not found for msg: {msg}")
+                return
+
             registry_value = hub_event_listener.get_registry_entry(id)
             entity = registry_value.entity 
 
@@ -335,13 +451,59 @@ class hub_event_listener(threading.Thread):
                     logger.error(f"Failed to setattr is_reachable on device: {id} for msg: {msg}")
                     logger.error(ex)
 
+            # Process room updates (room info comes as separate field, not in attributes)
+            room_changed = False
+            if "room" in info:
+                try:
+                    room_data = info["room"]
+                    if room_data is not None:
+                        new_room = Room(
+                            id=room_data.get("id"),
+                            name=room_data.get("name"),
+                            color=room_data.get("color"),
+                            icon=room_data.get("icon")
+                        )
+                        if entity._json_data.room is None or entity._json_data.room.id != new_room.id:
+                            logger.debug(f"Setting {id} room to {new_room.name}")
+                            entity._json_data.room = new_room
+                            room_changed = True
+                        # Always ensure HA device registry area matches (even if _json_data room didn't change)
+                        # This handles the case where HA restarts and the room is already set in _json_data
+                        # but not yet in the HA device registry
+                        try:
+                            self._hass.loop.call_soon_threadsafe(
+                                lambda room=new_room.name, device_id=id: self._hass.async_create_task(
+                                    self._update_device_area(device_id, room)
+                                )
+                            )
+                        except Exception as ex:
+                            logger.error(f"Failed to schedule device area update for {id}: {ex}")
+                    elif entity._json_data.room is not None:
+                        # Room was removed
+                        logger.debug(f"Removing room from {id}")
+                        entity._json_data.room = None
+                        room_changed = True
+                        try:
+                            self._hass.loop.call_soon_threadsafe(
+                                lambda device_id=id: self._hass.async_create_task(
+                                    self._update_device_area(device_id, "")
+                                )
+                            )
+                        except Exception as ex:
+                            logger.error(f"Failed to schedule device area removal for {id}: {ex}")
+                except Exception as ex:
+                    logger.error(f"Failed to set room on device: {id} for msg: {msg}")
+                    logger.error(ex)
+
             to_process_attr = process_events_from[device_type]
             turn_on_off = False
             has_attributes = "attributes" in info and info["attributes"] is not None
+            name_changed = False
+            new_name = None
 
             if has_attributes:
                 attributes = info["attributes"]
-               
+
                 for key in attributes:
                     if key not in to_process_attr:
                         logger.debug(f"attribute {key} with value {attributes[key]} not in list of device type {device_type}, ignoring update...")
@@ -350,20 +512,26 @@ class hub_event_listener(threading.Thread):
                         key_attr = to_snake_case(key)
                         # This is a hack need a better impl
                         if key_attr == "is_on":
-                            turn_on_off = True 
+                            turn_on_off = True
+                        # Track name changes for device registry update
+                        if key == "customName":
+                            old_name = entity._json_data.attributes.custom_name
+                            if old_name != attributes[key]:
+                                name_changed = True
+                                new_name = attributes[key]
                         logger.debug(f"setting {key_attr}  to {attributes[key]}")
                         logger.debug(f"Entity before setting: {entity._json_data}")
-                        
+
                         value_to_set = attributes[key]
                         #Need a hack for outlet with date/time entities
                         if key in ["timeOfLastEnergyReset","totalEnergyConsumedLastUpdated"]:
                             logger.debug(f"Got into date/time so will set the value accordingly...")
                             try :
-                                value_to_set = parser.parse(attributes[key]) 
+                                value_to_set = parser.parse(attributes[key])
                             except:
                                 #Ignore the exception
                                 logger.warning(f"Failed to convert {attributes[key]} to date/time...")
-                        
+
                         setattr(entity._json_data.attributes,key_attr, value_to_set)
                         logger.debug(f"Entity after setting: {entity._json_data}")
                     except Exception as ex:
@@ -378,8 +546,19 @@ class hub_event_listener(threading.Thread):
                     logger.debug("Ignoring calling update_ha_state as ignore_update is set")
                     return
 
-            # Update HA state if attributes changed OR if reachability changed
-            if has_attributes or reachability_changed:
+                # Update HA device registry name if customName changed
+                if name_changed and new_name is not None:
+                    try:
+                        self._hass.loop.call_soon_threadsafe(
+                            lambda name=new_name, device_id=id: self._hass.async_create_task(
+                                self._update_device_name(device_id, name)
+                            )
+                        )
+                    except Exception as ex:
+                        logger.error(f"Failed to schedule device name update for {id}: {ex}")
+
+            # Update HA state if attributes changed OR if reachability/room changed
+            if has_attributes or reachability_changed or room_changed:
                 entity.schedule_update_ha_state(False)
 
                 if registry_value.cascade_entity is not None:

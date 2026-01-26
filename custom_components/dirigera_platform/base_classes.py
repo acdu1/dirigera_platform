@@ -179,8 +179,9 @@ class ikea_base_device_sensor():
     
     @property
     def icon(self):
-        return self._icon 
-    
+        # Return None instead of empty string to let HA use device_class default icon
+        return self._icon if self._icon else None
+
     @property
     def native_unit_of_measurement(self) -> str:
         return self._native_unit_of_measurement
@@ -213,8 +214,13 @@ class ikea_outlet_device(ikea_base_device):
 
 class ikea_outlet_switch_sensor(ikea_base_device_sensor, SwitchEntity):
     def __init__(self, device):
-        super().__init__(device = device, name = device.name )
-        
+        # No suffix or name prefix - use device name dynamically
+        super().__init__(device)
+
+    @property
+    def device_class(self):
+        return SwitchDeviceClass.OUTLET
+
     @property
     def is_on(self):
         return self._device.is_on

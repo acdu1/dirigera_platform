@@ -28,7 +28,7 @@ from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN, UnitOfTime, CONCENT
 from homeassistant.core import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 
-from .const import DOMAIN, PLATFORM
+from .const import DOMAIN, PLATFORM, DISCOVERY_COORDINATOR
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
@@ -66,6 +66,18 @@ async def async_setup_entry(
     async_add_entities(battery_sensors)
 
     await add_air_purifier_sensors(async_add_entities, platform.air_purifiers)
+
+    # Register callback and known devices with discovery coordinator
+    discovery = hass.data[DOMAIN].get(DISCOVERY_COORDINATOR)
+    if discovery:
+        discovery.register_platform_callback("sensor", async_add_entities)
+        for sensor in platform.environment_sensors:
+            discovery.register_known_device(sensor._json_data.id)
+        for controller in platform.controllers:
+            discovery.register_known_device(controller._json_data.id)
+        total = len(platform.environment_sensors) + len(platform.controllers)
+        logger.debug(f"Registered {total} sensors with discovery coordinator")
+
     logger.debug("sensor Complete async_setup_entry")
 
 async def add_environment_sensors(async_add_entities, env_devices):
