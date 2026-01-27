@@ -76,24 +76,24 @@ Here is how it looks
 
 1. After you have downloaded the integration from HACS and go to Setting -> Integration -> ADD INTEGRATION to add the dirigera integration, the following screen will come up
 
-![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/config-ip-details.png)
+![](screenshots/config-ip-details.png)
 
 To test the integration, enter the IP as "mock". The check-box indicates if the bulbs/lights associated with a device-set should be visible as entities or not
 
-![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/config-mock.png)
+![](screenshots/config-mock.png)
 
 The integration would prompt to press the action button on the hub
 
-![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/config-press-action.png)
+![](screenshots/config-press-action.png)
 
 Since this is mock, we would get a success message
 
-![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/config-hub-setup-complete-mock.png)
+![](screenshots/config-hub-setup-complete-mock.png)
 
 Once this is complete you would see two bulbs and two outlets appearing.
 
-![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/mock-lights.png)
-![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/mock-outlets.png)
+![](screenshots/mock-lights.png)
+![](screenshots/mock-outlets.png)
 
 ## Raising Issue
 
@@ -104,6 +104,6 @@ To get the JSON do the following
 * Look at the HASS log which would have the JSON. 
 * If you see any platform errors include that as well
 
-[Detailed Instructions](https://github.com/sanjoyg/dirigera_platform/wiki/Calling-dump_data-to-dump-the-JSON)
+[Detailed Instructions](docs/dump-data.md)
 
 
