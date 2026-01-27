@@ -262,7 +262,7 @@ class ikea_bulb(LightEntity):
     
     @color_hue.setter
     def color_hue(self, value) :
-        self.json_data.attributes.color_hue = value 
+        self._json_data.attributes.color_hue = value
     
     @property
     def color_saturation(self):
@@ -328,6 +328,7 @@ class ikea_bulb(LightEntity):
                     f"/devices/{self._json_data.id}",
                     [{"attributes": {"colorTemperature": ct}}]
                 )
+                self._color_mode = ColorMode.COLOR_TEMP
                 self._ignore_update = True
 
             if ATTR_HS_COLOR in kwargs:
@@ -336,9 +337,10 @@ class ikea_bulb(LightEntity):
                 self._color_hue = hs_tuple[0]
                 self._color_saturation = hs_tuple[1] / 100
                 # Saturation is 0 - 1 at IKEA
-               
+
                 await self.hass.async_add_executor_job(self._json_data.set_light_color,self._color_hue, self._color_saturation)
-                self._ignore_update = True 
+                self._color_mode = ColorMode.HS
+                self._ignore_update = True
             self.async_schedule_update_ha_state(False)
         except Exception as ex:
             logger.error("error encountered turning on : {}".format(self.name))

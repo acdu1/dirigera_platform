@@ -13,6 +13,7 @@ from dirigera import Hub
 from dirigera.devices.device import Room
 
 from homeassistant.const import ATTR_ENTITY_ID
+from homeassistant.components.light import ColorMode
 from homeassistant.helpers import device_registry as dr, entity_registry as er, area_registry as ar
 
 logger = logging.getLogger("custom_components.dirigera_platform.hub_event_listener")
@@ -31,7 +32,7 @@ process_events_from = {
                                 "timeOfLastEnergyReset",
                                 "totalEnergyConsumedLastUpdated",
                                 "customName"],
-    "light"           :     ["isOn", "lightLevel", "colorTemperature", "customName"],
+    "light"           :     ["isOn", "lightLevel", "colorTemperature", "colorHue", "colorSaturation", "customName"],
     "openCloseSensor" :     ["isOpen","batteryPercentage","customName"],
     "waterSensor"     :     ["waterLeakDetected","batteryPercentage","customName"],
     "blinds"          :     ["blindsCurrentLevel","batteryPercentage","customName"],
@@ -538,6 +539,13 @@ class hub_event_listener(threading.Thread):
                         logger.warn(f"Failed to set attribute key: {key} converted to {key_attr} on device: {id}")
                         logger.warn(ex)
                                 
+                # Update color_mode for lights when color attributes change
+                if device_type == "light" and hasattr(entity, '_color_mode'):
+                    if "colorHue" in attributes or "colorSaturation" in attributes:
+                        entity._color_mode = ColorMode.HS
+                    elif "colorTemperature" in attributes:
+                        entity._color_mode = ColorMode.COLOR_TEMP
+
                 # Lights behave odd with hubs when setting attribute one event is generated which
                 # causes brightness or other to toggle so put in a hack to fix that
                 # if its is_on attribute then ignore this routine
