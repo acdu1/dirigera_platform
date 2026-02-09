@@ -11,6 +11,7 @@ Should the upstream repository become active again, I reccommend reverting back.
 * Outlets (with energy monitoring)
 * Open/Close Sensors (PARASOLL, MYGGBETT)
 * Motion Sensors (VALLHORN, MYGGSPRAY)
+* Light Sensors (MYGGSPRAY illuminance)
 * Environment Sensors (VINDSTYRKA, ALPSTUGA including CO2)
 * FYRTUR/KADRILJ Blinds
 * STYRBAR / RODRET / SOMRIG Remotes - with automation events
@@ -27,6 +28,7 @@ Should the upstream repository become active again, I reccommend reverting back.
 **MYGGSPRAY Motion Sensors** (E2494)
 - IKEA reports these as `occupancySensor` instead of `motionSensor` — this fork handles both types
 - Full WebSocket event support for real-time motion detection
+- Light sensor (illuminance) support — each MYGGSPRAY registers a separate `lightSensor` device; raw Matter values are converted to lux
 
 **Light Color Mode Switching**
 - Fixes color state not updating when changed via the IKEA Home app
