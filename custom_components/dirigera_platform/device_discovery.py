@@ -27,6 +27,7 @@ DEVICE_TYPE_TO_PLATFORM = {
     "controller": "sensor",
     "motionSensor": "binary_sensor",
     "occupancySensor": "binary_sensor",  # MYGGSPRAY
+    "lightSensor": "sensor",  # MYGGSPRAY illuminance
     "openCloseSensor": "binary_sensor",
     "waterSensor": "binary_sensor",
 }
@@ -182,6 +183,7 @@ class DeviceDiscoveryCoordinator:
                 ikea_open_close_device,
                 ikea_motion_sensor_device,
                 ikea_water_sensor_device,
+                ikea_light_sensor_device,
                 # HA entity classes (wrap the device wrappers)
                 ikea_outlet_switch_sensor,
                 ikea_blinds_sensor,
@@ -189,6 +191,7 @@ class DeviceDiscoveryCoordinator:
                 ikea_motion_sensor,
                 ikea_open_close_sensor,
                 ikea_water_sensor,
+                ikea_light_sensor_lux,
             )
             from dirigera.devices.light import dict_to_light
             from dirigera.devices.outlet import dict_to_outlet
@@ -200,6 +203,7 @@ class DeviceDiscoveryCoordinator:
                 dict_to_environment_sensor_x,
                 dict_to_controller,
                 dict_to_motion_sensor_x,
+                dict_to_light_sensor_x,
             )
 
             if device_type == "light":
@@ -242,6 +246,12 @@ class DeviceDiscoveryCoordinator:
                 sensor = dict_to_motion_sensor_x(device_data, self._hub)
                 device_wrapper = ikea_motion_sensor_device(self._hass, self._hub, sensor)
                 return ikea_motion_sensor(device_wrapper)
+
+            elif device_type == "lightSensor":
+                # Light sensor (MYGGSPRAY illuminance): wrapper -> HA entity
+                sensor = dict_to_light_sensor_x(device_data, self._hub)
+                device_wrapper = ikea_light_sensor_device(self._hass, self._hub, sensor)
+                return ikea_light_sensor_lux(device_wrapper)
 
             elif device_type == "openCloseSensor":
                 # Open/close sensor: wrapper -> HA entity

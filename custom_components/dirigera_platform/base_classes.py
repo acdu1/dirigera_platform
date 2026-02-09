@@ -22,11 +22,12 @@ from homeassistant.const import (
     UnitOfTemperature,
     CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
     CONCENTRATION_PARTS_PER_MILLION,
+    LIGHT_LUX,
     )
 
 from dirigera import Hub
 from dirigera.devices.blinds import Blind
-from .dirigera_lib_patch import EnvironmentSensorX
+from .dirigera_lib_patch import EnvironmentSensorX, LightSensorX
 from dirigera.devices.controller import Controller
 from dirigera.devices.air_purifier import FanModeEnum
 
@@ -248,6 +249,32 @@ class ikea_motion_sensor(ikea_base_device_sensor, BinarySensorEntity):
     @property
     def is_on(self):
         return self._device.is_on or self._device.is_detected
+
+class ikea_light_sensor_device(ikea_base_device):
+    def __init__(self, hass, hub, json_data: LightSensorX):
+        logger.debug("ikea_light_sensor_device ctor...")
+        super().__init__(hass, hub, json_data, hub.get_light_sensor_by_id)
+        self.skip_update = True
+
+class ikea_light_sensor_lux(ikea_base_device_sensor, SensorEntity):
+    def __init__(self, device: ikea_light_sensor_device):
+        logger.debug("ikea_light_sensor_lux ctor...")
+        super().__init__(
+            device,
+            id_suffix="LUX",
+            name="Illuminance",
+            device_class=SensorDeviceClass.ILLUMINANCE,
+            native_unit_of_measurement=LIGHT_LUX,
+            state_class=SensorStateClass.MEASUREMENT)
+
+    @property
+    def native_value(self) -> float | None:
+        raw = self._device.illuminance
+        if raw is None or raw <= 0:
+            return 0
+        # Matter spec: MeasuredValue = 10000 * log10(lux) + 1
+        # So: lux = 10^((MeasuredValue - 1) / 10000)
+        return round(10 ** ((raw - 1) / 10000), 1)
 
 class ikea_open_close_device(ikea_base_device):
     def __init__(self, hass, hub, json_data):

@@ -137,6 +137,24 @@ class HubX(Hub):
             raise ValueError("Device is not a MotionSensor or OccupancySensor")
         return dict_to_motion_sensor_x(motion_sensor, self)
 
+    def get_light_sensors(self) -> List[LightSensorX]:
+        """
+        Fetches all light sensors registered in the Hub.
+        MYGGSPRAY creates a separate lightSensor device for illuminance data.
+        """
+        devices = self.get("/devices")
+        sensors = list(filter(lambda x: x["deviceType"] == "lightSensor", devices))
+        return [dict_to_light_sensor_x(sensor, self) for sensor in sensors]
+
+    def get_light_sensor_by_id(self, id_: str) -> LightSensorX:
+        """
+        Fetches a light sensor by ID.
+        """
+        sensor = self._get_device_data_by_id(id_)
+        if sensor["deviceType"] != "lightSensor":
+            raise ValueError("Device is not a LightSensor")
+        return dict_to_light_sensor_x(sensor, self)
+
     def get_environment_sensors(self) -> List[EnvironmentSensorX]:
         """
         Fetches all environment sensors registered in the Hub.
@@ -212,6 +230,37 @@ class HackScene():
 
     def undo(self) -> HackScene:
         self.hub.post(route=f"/scenes/{self.id}/undo")
+
+
+# Light sensor patch for MYGGSPRAY (lightSensor)
+# MYGGSPRAY creates a separate lightSensor device for illuminance data
+class LightSensorAttributesX(Attributes):
+    battery_percentage: Optional[int] = None
+    illuminance: Optional[int] = None
+    max_illuminance: Optional[int] = None
+    min_illuminance: Optional[int] = None
+
+
+class LightSensorX(Device):
+    dirigera_client: AbstractSmartHomeHub
+    attributes: LightSensorAttributesX
+
+    def reload(self) -> "LightSensorX":
+        data = self.dirigera_client.get(route=f"/devices/{self.id}")
+        return LightSensorX(dirigeraClient=self.dirigera_client, **data)
+
+    def set_name(self, name: str) -> None:
+        if "customName" not in self.capabilities.can_receive:
+            raise AssertionError("This sensor does not support the set_name function")
+        data = [{"attributes": {"customName": name}}]
+        self.dirigera_client.patch(route=f"/devices/{self.id}", data=data)
+        self.attributes.custom_name = name
+
+
+def dict_to_light_sensor_x(
+    data: Dict[str, Any], dirigera_client: AbstractSmartHomeHub
+) -> LightSensorX:
+    return LightSensorX(dirigeraClient=dirigera_client, **data)
 
 
 # Motion sensor patch for MYGGSPRAY (occupancySensor)

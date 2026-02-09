@@ -11,6 +11,7 @@ from .base_classes import (
     ikea_vindstyrka_voc_index,
     WhichPM25,
     ikea_starkvind_air_purifier_sensor,
+    ikea_light_sensor_lux,
     current_amps_sensor ,
     current_active_power_sensor,
     current_voltage_sensor,
@@ -54,11 +55,17 @@ async def async_setup_entry(
     await add_environment_sensors(async_add_entities, platform.environment_sensors)
     await add_outlet_power_attrs(async_add_entities, platform.outlets)
 
+    # Add light sensor illuminance entities (MYGGSPRAY)
+    light_sensor_entities = [ikea_light_sensor_lux(x) for x in platform.light_sensors]
+    logger.debug(f"Found {len(light_sensor_entities)} light sensor entities...")
+    async_add_entities(light_sensor_entities)
+
     # Add battery sensors
     battery_sensors = []
     battery_sensors.extend([battery_percentage_sensor(x) for x in platform.motion_sensors])
     battery_sensors.extend([battery_percentage_sensor(x) for x in platform.open_close_sensors])
     battery_sensors.extend([battery_percentage_sensor(x) for x in platform.water_sensors])
+    battery_sensors.extend([battery_percentage_sensor(x) for x in platform.light_sensors if getattr(x,"battery_percentage",None) is not None])
     battery_sensors.extend([battery_percentage_sensor(x) for x in platform.environment_sensors if getattr(x,"battery_percentage",None) is not None])
     battery_sensors.extend([battery_percentage_sensor(x) for x in platform.blinds if getattr(x,"battery_percentage",None) is not None])
 
@@ -73,9 +80,11 @@ async def async_setup_entry(
         discovery.register_platform_callback("sensor", async_add_entities)
         for sensor in platform.environment_sensors:
             discovery.register_known_device(sensor._json_data.id)
+        for sensor in platform.light_sensors:
+            discovery.register_known_device(sensor._json_data.id)
         for controller in platform.controllers:
             discovery.register_known_device(controller._json_data.id)
-        total = len(platform.environment_sensors) + len(platform.controllers)
+        total = len(platform.environment_sensors) + len(platform.light_sensors) + len(platform.controllers)
         logger.debug(f"Registered {total} sensors with discovery coordinator")
 
     logger.debug("sensor Complete async_setup_entry")

@@ -36,6 +36,7 @@ process_events_from = {
     "openCloseSensor" :     ["isOpen","batteryPercentage","customName"],
     "waterSensor"     :     ["waterLeakDetected","batteryPercentage","customName"],
     "blinds"          :     ["blindsCurrentLevel","batteryPercentage","customName"],
+    "lightSensor"     :     ["illuminance","batteryPercentage","customName"],
     "environmentSensor":    [   "currentTemperature",
                                 "currentRH",
                                 "currentPM25",
