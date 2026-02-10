@@ -40,6 +40,11 @@ Should the upstream repository become active again, I reccommend reverting back.
 - STYRBAR (E2002) mapped with all 4 buttons
 - Fixes device trigger prefix mismatch that broke automations
 
+**Library Upgrade**
+- Upgraded dirigera library from 1.2.1 to 1.2.6
+- Uses native library classes for `EnvironmentSensor` (CO2 support) and `LightSensor` (illuminance) instead of custom patches
+- Custom patches remain only where needed: `MotionSensorX` (combined motionSensor/occupancySensor), `ControllerX`, `HackScene`
+
 **Additional Fixes**
 - Device reachability: devices now correctly show as unavailable when offline ([#147](https://github.com/sanjoyg/dirigera_platform/issues/147))
 - Color temperature: fixes mired/Kelvin unit conversion
