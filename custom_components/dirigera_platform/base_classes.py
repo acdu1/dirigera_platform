@@ -22,7 +22,7 @@ from homeassistant.const import (
     UnitOfTemperature,
     CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
     CONCENTRATION_PARTS_PER_MILLION,
-    LIGHT_LUX,
+    LIGHT_LUX
     )
 
 from dirigera import Hub
@@ -497,12 +497,11 @@ class ikea_alpstuga_co2(ikea_base_device_sensor, SensorEntity):
     def __init__(self, device: ikea_vindstyrka_device) -> None:
         logger.debug("ikea_alpstuga_co2 ctor...")
         super().__init__(
-            device,
-            id_suffix="CO2",
+            device, 
+            id_suffix="CO2", 
             name="CO2",
             device_class=SensorDeviceClass.CO2,
-            native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
-            state_class="measurement")
+            native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION)
 
     @property
     def native_value(self) -> int:
