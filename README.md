@@ -1,33 +1,72 @@
 ## IKEA Dirigera Hub Integration
-This custom components help integrating HomeAssistant with the new IKEA Dirigera hub. This integration is a scaffolding on the great work done by Nicolas Hilberg  at https://github.com/Leggin/dirigera
 
-Supports
-* Lights
-* Outlets
-* Open/Close Sensors
-* Motion Sensor
-* Environment Sensor
-* FYRTUR Blinds               
-* STYRBAR Remotes      
-* AirPurifier
-* STARKVIND AirPurifier
-* VALLHORN Motion Sensors
+This is an actively maintained fork of [sanjoyg/dirigera_platform](https://github.com/sanjoyg/dirigera_platform), which appears to be abandoned (last activity March 2025). This integration connects Home Assistant with the IKEA Dirigera hub, built on the [dirigera](https://github.com/Leggin/dirigera) Python library by Nicolas Hilberg.
+
+This fork addresses most of the outstanding issues from the upstream repository. Contributions are welcome — feel free to open [issues](https://github.com/nrbrt/dirigera_platform/issues) or submit pull requests.
+
+Should the upstream repository become active again, I reccommend reverting back. In the meantime, I will try to answer questions and update things in my fork, while filing PRs upstream of all changes I make, just in case the upstream maintainer resurfaces and wants to continue working on it.
+
+### Supported Devices
+* Lights (including RGBWW with dynamic color mode switching)
+* Outlets (with energy monitoring)
+* Open/Close Sensors (PARASOLL, MYGGBETT)
+* Motion Sensors (VALLHORN, MYGGSPRAY)
+* Light Sensors (MYGGSPRAY illuminance)
+* Environment Sensors (VINDSTYRKA, ALPSTUGA including CO2)
+* FYRTUR/KADRILJ Blinds
+* STYRBAR / RODRET / SOMRIG Remotes - with automation events
+* AirPurifier / STARKVIND
+* Water Leak Sensors (BADRING)
 * Scenes
-* BADRING Water Leak sensor:
-* SOMRIG Controllers - Included Events for Automation
 
-<a href="https://www.buymeacoffee.com/sanjoyg" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+### What this fork adds
 
-Donation to above will got to [Samriddhi Foundation](https://www.samriddhifoundation.net/) an iniative by my teenage daughter to help the less fortunate.
+**Dynamic Device Discovery** ([#139](https://github.com/sanjoyg/dirigera_platform/issues/139))
+- Devices added to or removed from the Dirigera hub are automatically reflected in Home Assistant — no restart required
+- Name and room changes made in the IKEA Home app sync to HA in real-time
+
+**MYGGSPRAY Motion Sensors** (E2494)
+- IKEA reports these as `occupancySensor` instead of `motionSensor` — this fork handles both types
+- Full WebSocket event support for real-time motion detection
+- Light sensor (illuminance) support — each MYGGSPRAY registers a separate `lightSensor` device; raw Matter values are converted to lux
+
+**Light Color Mode Switching**
+- Fixes color state not updating when changed via the IKEA Home app
+- RGBWW lamps now correctly switch between HS color and color temperature modes
+- Adds `colorHue` and `colorSaturation` to WebSocket event processing
+
+**RODRET / STYRBAR Remote Support**
+- Adds `remotePressEvent` handling for `lightController` devices
+- STYRBAR (E2002) mapped with all 4 buttons
+- Fixes device trigger prefix mismatch that broke automations
+
+**Library Upgrade**
+- Upgraded dirigera library from 1.2.1 to 1.2.6
+- Uses native library classes for `EnvironmentSensor` (CO2 support) and `LightSensor` (illuminance) instead of custom patches
+- Custom patches remain only where needed: `MotionSensorX` (combined motionSensor/occupancySensor), `ControllerX`, `HackScene`
+
+**Additional Fixes**
+- Device reachability: devices now correctly show as unavailable when offline ([#147](https://github.com/sanjoyg/dirigera_platform/issues/147))
+- Color temperature: fixes mired/Kelvin unit conversion
+- ALPSTUGA: adds CO2 sensor support
+- Environment sensors: adds `state_class: measurement` for Long Term Statistics
+- STARKVIND: fixes native unit of measurement
+- Outlet power sensor: marked as measurement for energy dashboard
+- Deprecation warning fixed for HA 2024.12+ (`OptionsFlowWithConfigEntry`)
+
 
 ## Pre-requisite
 1. Identify the IP of the gateway - Usually looking at the client list in your home router interface will give that.
 
 ## Installing
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sanjoyg&repository=dirigera_platform&category=integration)
 
-- Like all add-on installation goto the "HACS" option in the left menu bar in home assistant
-- Select Integration and add custom repository and enter this repositoy
+### From this fork (recommended)
+- In Home Assistant, go to **HACS** → **Integrations** → **⋮** (top right) → **Custom repositories**
+- Add `https://github.com/nrbrt/dirigera_platform` as an **Integration**
+- Search for "Dirigera" and install
+
+### One-click install via HACS
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=nrbrt&repository=dirigera_platform&category=integration)
 
 ## Using the integration
 1. One you get to add integration and get to the configuration screen, the IP of the gateway will be requested. 
@@ -48,24 +87,24 @@ Here is how it looks
 
 1. After you have downloaded the integration from HACS and go to Setting -> Integration -> ADD INTEGRATION to add the dirigera integration, the following screen will come up
 
-![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/config-ip-details.png)
+![](screenshots/config-ip-details.png)
 
 To test the integration, enter the IP as "mock". The check-box indicates if the bulbs/lights associated with a device-set should be visible as entities or not
 
-![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/config-mock.png)
+![](screenshots/config-mock.png)
 
 The integration would prompt to press the action button on the hub
 
-![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/config-press-action.png)
+![](screenshots/config-press-action.png)
 
 Since this is mock, we would get a success message
 
-![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/config-hub-setup-complete-mock.png)
+![](screenshots/config-hub-setup-complete-mock.png)
 
 Once this is complete you would see two bulbs and two outlets appearing.
 
-![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/mock-lights.png)
-![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/mock-outlets.png)
+![](screenshots/mock-lights.png)
+![](screenshots/mock-outlets.png)
 
 ## Raising Issue
 
@@ -76,6 +115,6 @@ To get the JSON do the following
 * Look at the HASS log which would have the JSON. 
 * If you see any platform errors include that as well
 
-[Detailed Instructions](https://github.com/sanjoyg/dirigera_platform/wiki/Calling-dump_data-to-dump-the-JSON)
+[Detailed Instructions](docs/dump-data.md)
 
 
