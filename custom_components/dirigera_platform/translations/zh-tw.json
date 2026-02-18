@@ -1,0 +1,73 @@
+{
+    "config": {
+      "error": {
+        "hub_connection_fail": "無法使用這些數值連接至 IKEA Dirigera 集中器，請檢查 IP 與權杖（Token）。"
+      },
+      "step": {
+        "user": {
+          "data": {
+            "ip_address": "集中器 IP",
+            "hide_device_set_bulbs": "隱藏裝置組燈泡"
+          },
+          "description": "請輸入 IKEA Dirigera 集中器詳細資訊",
+          "title": "IKEA Dirigera 集中器設定"
+        },
+        "action": {
+          "data": {
+            "ip_address": "集中器 IP",
+            "hide_device_set_bulbs": "隱藏裝置組燈泡"
+          },
+          "description": "請按下 Dirigera 集中器上的動作按鈕，然後按下「送出」。",
+          "title": "IKEA Dirigera 集中器設定"
+        }
+      }
+    },
+    "options": {
+      "error": {
+        "hub_connection_fail": "無法使用這些數值連接至 IKEA Dirigera 集中器，請檢查 IP 與權杖（Token）。"
+      },
+      "step": {
+        "init": {
+          "title": "IKEA Dirigera 集中器平台",
+          "data": {
+            "ip_address": "集中器 IP",
+            "token": "權杖 (Token)",
+            "hide_device_set_bulbs": "隱藏裝置組燈泡"
+          },
+          "description": "正在更新 IKEA Dirigera 集中器設定..."
+        },
+        "action": {
+          "data": {
+            "ip_address": "集中器 IP",
+            "hide_device_set_bulbs": "隱藏裝置組燈泡"
+          },
+          "description": "請按下 Dirigera 集中器上的動作按鈕，然後按下「送出」。",
+          "title": "IKEA Dirigera 集中器設定"
+        }
+      }
+    },
+    "exceptions": {
+      "hub_exception": {
+        "message" : "集中器發生異常..."
+      }
+    },
+    "device_automation": {
+      "trigger_type": {
+        "single_click": "{entity_name} 單擊",
+        "long_press": "{entity_name} 長按",
+        "double_click": "{entity_name} 雙擊",
+        "button1_single_click": "{entity_name} 按鈕 1 單擊",
+        "button1_long_press": "{entity_name} 按鈕 1 長按",
+        "button1_double_click": "{entity_name} 按鈕 1 雙擊",
+        "button2_single_click": "{entity_name} 按鈕 2 單擊",
+        "button2_long_press": "{entity_name} 按鈕 2 長按",
+        "button2_double_click": "{entity_name} 按鈕 2 雙擊",
+        "button3_single_click": "{entity_name} 按鈕 3 單擊",
+        "button3_long_press": "{entity_name} 按鈕 3 長按",
+        "button3_double_click": "{entity_name} 按鈕 3 雙擊",
+        "button4_single_click": "{entity_name} 按鈕 4 單擊",
+        "button4_long_press": "{entity_name} 按鈕 4 長按",
+        "button4_double_click": "{entity_name} 按鈕 4 雙擊"
+      }
+   }
+}
